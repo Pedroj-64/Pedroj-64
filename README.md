@@ -1,12 +1,10 @@
 <!-- Header -->
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:1a1b26,50:7aa2f7,100:bb9af7&height=200&section=header&text=Pedro%20Jos%C3%A9%20Soto%20Rivera&fontSize=42&fontColor=c0caf5&animation=fadeIn&fontAlignY=38&desc=Developer%20%E2%80%A2%20Junior%20Cybersecurity%20Analyst&descAlignY=58&descSize=18" alt="header"/>
-</p>
-
-<p align="center">
-  <a href="https://github.com/Pedroj-64">
-    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&pause=1000&color=BB9AF7&center=true&vCenter=true&width=600&lines=Software+Engineering+Student+%40+UQ;Junior+Cybersecurity+Analyst+%F0%9F%9B%A1%EF%B8%8F;Java+%E2%80%A2+Spring+%E2%80%A2+Elixir+%E2%80%A2+Python;Linux+enjoyer+%F0%9F%A6%8E+Tokyo+Night+forever" alt="Typing SVG"/>
-  </a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner/dark.svg"/>
+    <source media="(prefers-color-scheme: light)" srcset="assets/banner/light.svg"/>
+    <img alt="pedro@Pedroj-64 — neofetch" src="assets/banner/dark.svg"/>
+  </picture>
 </p>
 
 <p align="center">
