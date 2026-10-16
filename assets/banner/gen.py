@@ -1,11 +1,16 @@
 """Genera dark.svg y light.svg (neofetch animado, retrato de puntos). Uso: python3 gen.py <imagen>"""
-import sys, html
+import sys, html, random
 import numpy as np
 from PIL import Image, ImageOps
 
 W, H = 1180, 610
 PX, PY, PW, PH = 30, 84, 420, 472  # panel del retrato
 CELL = 4
+D = 14  # segundos por ciclo (se repite siempre)
+
+
+def kt(*sec):
+    return ";".join(f"{x/D:.4f}" for x in sec)
 
 # (nombre, nivel 1-3). Ajusta aquí: 3=diario, 2=cómodo, 1=aprendiendo/noob
 LANGS = [("Java", 3), ("Python", 3), ("JavaScript", 3), ("Elixir", 2), ("Kotlin", 2), ("C#", 2),
@@ -57,7 +62,7 @@ def build(name, t, pts):
          f'<clipPath id="win"><rect x="2" y="2" width="{W-4}" height="{H-4}" rx="18"/></clipPath>',
          f'<clipPath id="pc"><rect x="{PX}" y="{PY}" width="{PW}" height="{PH}" rx="10"/></clipPath>',
          f'<mask id="rv"><rect x="{PX}" y="{PY}" width="{PW}" height="0" fill="#fff">'
-         f'<animate attributeName="height" from="0" to="{PH}" begin="0.3s" dur="3.5s" fill="freeze"/></rect></mask>',
+         f'<animate attributeName="height" values="0;0;{PH};{PH};0;0" keyTimes="0;{0.3/D:.4f};{3.8/D:.4f};{12/D:.4f};{13/D:.4f};1" dur="{D}s" repeatCount="indefinite"/></rect></mask>',
          '</defs>',
          f'<g clip-path="url(#win)"><rect width="{W}" height="{H}" fill="{t["bg"]}"/>',
          f'<rect width="{W}" height="46" fill="{t["bar"]}"/></g>',
@@ -69,23 +74,36 @@ def build(name, t, pts):
              f'<text x="490" y="68" font-size="10" letter-spacing="3" fill="{t["dim"]}">SYSTEM.INFO</text>')
     s.append(f'<rect x="{PX}" y="{PY}" width="{PW}" height="{PH}" rx="10" fill="{t["panel"]}" stroke="{t["dim"]}" stroke-opacity=".4"/>')
     # retrato
-    s.append('<g clip-path="url(#pc)"><g mask="url(#rv)" fill="url(#pg)">')
+    rnd = random.Random(7)
+    s.append('<g clip-path="url(#pc)"><g mask="url(#rv)"><g fill="url(#pg)">'
+             '<animate attributeName="opacity" values="1;.78;1" dur="3s" repeatCount="indefinite"/>')
     s.append("".join(f'<circle cx="{x+PX:g}" cy="{y+PY:g}" r="{r}"/>' for x, y, r in pts))
+    s.append('</g><g fill="#fff">')  # destellos: puntos que parpadean
+    for x, y, r in rnd.sample(pts, 90):
+        s.append(f'<circle cx="{x+PX:g}" cy="{y+PY:g}" r="{r*1.5:.2f}" opacity="0"><animate attributeName="opacity" values="0;1;0" '
+                 f'dur="{rnd.uniform(1.2,3.5):.1f}s" begin="{rnd.uniform(0,6):.1f}s" repeatCount="indefinite"/></circle>')
+    s.append('</g></g>')
+    beam = lambda ys, op, col: (f'<rect x="{PX}" y="{PY}" width="{PW}" height="2" fill="{col}" opacity="0">'
+        f'<animate attributeName="y" values="{ys}" keyTimes="{kt(0,.3,3.8,6.2,8.2,D)}" dur="{D}s" repeatCount="indefinite"/>'
+        f'<animate attributeName="opacity" values="{op}" keyTimes="{kt(0,.3,.5,3.7,3.8,6.2,6.4,8.0,8.2,D)}" dur="{D}s" repeatCount="indefinite"/></rect>')
+    s.append(beam(f"{PY};{PY};{PY+PH};{PY};{PY+PH};{PY+PH}", "0;0;.9;.9;0;0;.5;.5;0;0", g[0]))
     s.append('</g>')
-    s.append(f'<rect x="{PX}" y="{PY}" width="{PW}" height="2" fill="{g[0]}" opacity="0">'
-             f'<animate attributeName="y" from="{PY}" to="{PY+PH}" begin="0.3s" dur="3.5s" fill="freeze"/>'
-             '<animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.05;.95;1" begin="0.3s" dur="3.5s" fill="freeze"/></rect></g>')
     for cx, cy, dx, dy in [(PX, PY, 1, 1), (PX+PW, PY, -1, 1), (PX, PY+PH, 1, -1), (PX+PW, PY+PH, -1, -1)]:
         s.append(f'<path d="M{cx+dx*14} {cy} H{cx} V{cy+dy*14}" fill="none" stroke="{g[2]}" stroke-width="2"/>')
-    s.append(f'<text x="32" y="582" font-size="12" fill="{t["dim"]}">status: <tspan fill="{t["key"]}">online</tspan></text>')
+    s.append(f'<text x="32" y="582" font-size="12" fill="{t["dim"]}">status:</text>')
+    for i, (txt, a, b) in enumerate([("online", 0, .45), ("scanning…", .45, .75), ("compiling…", .75, 1)]):
+        vals = ";".join("1" if j == i else "0" for j in range(3))
+        s.append(f'<text x="86" y="582" font-size="12" fill="{t["key"]}" opacity="{1 if i == 0 else 0}"><animate attributeName="opacity" calcMode="discrete" '
+                 f'values="{vals}" keyTimes="0;{.45 if True else 0};.75" dur="{D}s" repeatCount="indefinite"/>{txt}</text>')
 
     # panel de info, aparece línea a línea
     n = [0]
 
     def line(inner):
         n[0] += 1
-        return (f'<g opacity="0">{inner}<animate attributeName="opacity" from="0" to="1" '
-                f'begin="{0.6+n[0]*0.12:.2f}s" dur=".35s" fill="freeze"/></g>')
+        b = 0.6 + n[0] * 0.12
+        return (f'<g opacity="0">{inner}<animate attributeName="opacity" values="0;0;1;1;0;0" '
+                f'keyTimes="{kt(0, b, b + .35, 12, 13, D)}" dur="{D}s" repeatCount="indefinite"/></g>')
 
     s.append(line(f'<text x="490" y="102" font-size="20" font-weight="700" fill="url(#pg)">pedro<tspan fill="{t["dim"]}">@</tspan>Pedroj-64</text>'
                   f'<rect x="490" y="110" width="300" height="2" fill="{g[2]}" opacity=".6"/>'))
@@ -110,6 +128,7 @@ def build(name, t, pts):
     s.append(line(f'<text x="490" y="{y+34}" font-size="11" letter-spacing="3" fill="{g[2]}">TOOLS</text>'
                   f'<text x="490" y="{y+54}" font-size="14" fill="{t["fg"]}">{e(TOOLS)}</text>'))
     s.append(line("".join(f'<rect x="{490+i*26}" y="{y+68}" width="22" height="12" rx="3" fill="{c}"/>' for i, c in enumerate(t["sw"]))))
+    s.append(f'<rect x="{490+8*26+6}" y="{y+66}" width="9" height="16" fill="{g[0]}" opacity="0"><animate attributeName="opacity" calcMode="discrete" values="1;0" dur="1s" repeatCount="indefinite"/></rect>')
     s.append(f'<text x="1150" y="582" text-anchor="end" font-size="12" fill="{t["dim"]}">● daily  ◐ comfortable  ○ learning</text>'
              if False else
              f'<text x="1150" y="582" text-anchor="end" font-size="11" fill="{t["dim"]}">3 pips = daily · 2 = comfortable · 1 = learning</text>')
